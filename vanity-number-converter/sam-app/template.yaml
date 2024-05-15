@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: An AWS SAM template for deploying a Lambda function that generates vanity numbers and stores them in DynamoDB.
+
+Resources:
+  VanityNumberFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: function.handler
+      Runtime: python3.12
+      CodeUri: src/
+      Events:
+        DynamoDBStream:
+          Type: DynamoDBStream
+          Properties:
+            Stream: !GetAtt VanityNumbersTable.StreamArn
+            BatchSize: 100
+            StartingPosition: LATEST
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref VanityNumbersTable
+
+  VanityNumbersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: VanityNumbers
+      AttributeDefinitions:
+        - AttributeName: "PhoneNumber"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "PhoneNumber"
+          KeyType: "HASH"
+      BillingMode: PAY_PER_REQUEST
